@@ -1,0 +1,368 @@
+% !TeX encoding = ISO-8859-1
+% !TeX spellcheck = es_ES
+
+\section{Definición del software}
+
+Para el objetivo planteado en este proyecto, se requiere el uso de un microcontrolador por lo que se debe implementar un programa o firmware para configurar y utilizar, de manera correcta, los periféricos correspondientes a las conexiones inalámbricas y el manejo de datos seriales; además es necesario un protocolo de conexión hacia un agente externo que permita enviar los datos recolectados por la infraestructura, una infraestructura que debe ser creada mediante este firmware y como método de configuración de los nodos una interfaz gráfica de usuario (GUI) que le permita a la red adaptarse de manera sencilla al lugar donde se instale.\\
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\linewidth]{img/DiagramaGenerico}
+	\caption{Diagrama de bloques genérico del sistema}
+	\label{fig:diagramageneralsoft}
+\end{figure}
+
+
+El firmware en el microcontrolador (ESP32) debe ser capaz de iniciar en dos modos: el modo de operación y el modo de configuración. El modo de inicio debe ser controlado por el usuario.\\
+
+
+La rutina de configuración debe ofrecer al usuario una interfaz gráfica donde se pueda modificar todos los parámetros que sean necesarios para establecer la conexión con el punto de acceso local, del mismo modo se debe conectar la red con el agente externo y realizar el envío de datos; los parámetros de funcionamiento de la parte serial de cada nodo para extraer desde los medidores la información y los necesarios en la red mallada para establecer la cantidad de conexiones y el registro de nodos en la red; además del usuario y contraseña de acceso a dicha página.\\
+
+
+Por otra parte, la rutina de configuración debe detenerse en caso de que faltase algún parámetro fundamental para el funcionamiento, en caso contrario debe ir activando etapa por etapa los procesos para: configurar los periféricos necesarios, activar la conexión inalámbrica, conectarse con el punto de acceso y registrarse en la red mallada.\\
+
+
+Las operaciones anteriores son compartidas en todos los nodos y son necesarias para entrar en la red. Las siguientes rutinas a ejecutarse dependen de la jerarquía que posee el nodo en la red mallada y de la función que se haya configurado para el nodo en la interfaz gráfica. La jerarquía que tiene un nodo dependerá de la intensidad de señal de este respecto al punto de acceso.\\
+
+En caso de ser el nodo de mayor jerarquía, dicho nodo será el encargado de gestionar la comunicación de la red con el exterior, este nodo servirá como el enlace para enviar y recibir la información para toda la red. Además a partir de este nodo se formará el resto de la topología de red mallada.\\
+
+Los demás nodos deben ser repetidores para que la señal pueda abarcar el espacio físico necesario o nodos conectados a medidores para la extracción de datos. Estas dos rutinas no deben ser excluyentes, los nodos deben tener la capacidad de ser repetidores y extraer datos al mismo tiempo.\\
+
+Hay dos rutinas principales para la extracción de datos, una mediante la salida de calibración del medidor y otra que se conecta a un bus serial RS485. La rutina de extracción de datos debe estar configurada para que se utilice el método necesario según el medidor. En caso de que los datos sean extraídos por la salida de calibración del medidor se debe diseñar una rutina para contar y almacenar los pulsos que esta genera considerando la cantidad inicial de kWh, esto por ser el registro que se desea transmitir debe estar almacenado de manera persistente y debe estar protegido contra pérdidas de alimentación. Por el contrario si en el nodo los datos son adquiridos mediante un bus serial, la persistencia de datos es realizada por el medidor, entonces la rutina en este caso solo debe encargarse de la trama serial. En ambos casos una vez adquiridos los datos se deben enviar a la red exterior cuando sean solicitados.
+
+\section{Descripción del software}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\linewidth]{img/DiagramaGeneral.png}
+	\caption{Diagrama general de funcionamiento ilustrado.}
+	\label{fig:diagramageneral}
+\end{figure}
+
+\subsection{Modo de configuración}
+
+El modo de configuración utiliza un sistema de archivos para implementar un servidor web que soporta protocolos http. Este sistema de archivos en el microcontrolador se trabaja con la API de \textit{SPIFFS} que ofrece el fabricante, esto permite grabar en la memoria flash del microcontrolador los diferentes archivos necesarios para implementar una página web como interfaz gráfica de usuario. Sin embargo para que esto ocurra se requiere en la configuración de inicio definir un espacio en una tabla de particiones para toda esta estructura.
+
+\subsubsection{Tablas de particiones en el ESP32}
+
+Un código cualquiera en el ESP32 puede contener múltiples aplicaciones, así como muchos tipos diferentes de datos (datos de calibración, sistemas de archivos, almacenamiento de parámetros, etc.) es por esto que las tablas de particiones se encuentran con un offset para cada código en cuestión en la memoria flash.
+
+En cada grabado se utiliza un archivo de tabla de particiones por defecto que es definida en el menú de configuraciones también llamado \textit{menuconfig}, hay dos tablas modelos para utilizar en este menú: \textit{Aplicación única de fábrica} (\ref{Tab:Partition_Table_example}) y \textit{Aplicación de dos definiciones}. La diferencia entre ambas tablas radica en la cantidad de particiones en la memoria flash y cómo son utilizadas: La aplicación única solo posee un código para arranque de tipo \textit{app} en la tabla de particiones, mientras que la tabla de dos definiciones posee dos códigos para iniciar el micro y es el gestor de arranque mediante ciertas reglas el que decide cuál data de tipo \textit{app} poner en marcha. Este último modelo de tabla es útil cuando se quiere incorporar actualizaciones inalámbricas del programa en el micro también llamadas \textit{Over The Air updates (OTA)}.\\
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{img/TablasOTA}
+	\caption{Diagrama ilustrativo de la memoria flash para los modelos de tablas de partición. Columna 1: Aplicación de fábrica. Columna 2, 3, 4: Aplicaciones con arranques múltiples}
+	\label{fig:tablasota}
+\end{figure}
+
+En este proyecto se utiliza una aplicación única sin actualizaciones inalámbricas por lo que se utilizó el primer modelo de tabla, cuyas estructuras en archivo CSV se especifican a continuación:
+
+\begin{table}[H]
+	\centering
+	\caption{ESP-IDF Tabla de Particiones por defecto (Aplicación única de fábrica, sin OTA)}
+	\label{Tab:Partition_Table_example}
+	\medskip
+	\begin{tabular}{llllll}
+		\toprule
+		Name & Type & SubType & Offset & Size & Flags\\
+		\midrule
+		nvs &      data& nvs&    0x9000&  0x6000 & \\
+		phyinit& data& phy& 0xf000& 0x1000& \\
+		factory&  app&  factory& 0x10000& 1M& \\	
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+Con un desplazamiento de 0x10000 (64KB) en la flash, se encuentra la aplicación llamada "fábrica". El gestor de arranque ejecutará esta aplicación de forma predeterminada. También hay dos regiones de datos definidas en la tabla de particiones para almacenar la partición de la biblioteca \textit{NVS} y los datos de inicio \textit{PHY} (datos de calibración de periféricos).\\
+
+Con la finalidad de adaptarse a la aplicación fue necesario modificar la tabla de particiones puesto que la interfaz gráfica de módo de configuración y las diferentes particiones para datos requerían de un tamaño mayor al que posee la tabla de particiones original. Para crear o modificar los tamaños en una partición basta con configurar en el \textit{menuconfig} del proyecto que se utilizará una tabla de particiones personalizada.
+
+%\textbf{Explicación de particiones de memoria para configuración, operación y memoria rotativa}
+
+%Al iniciar el programa se configuran los periféricos necesarios mediante las API que ofrece el fabricante \href{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/index.html}{\textit{Espressif Systems}} para el ESP32.
+
+
+	\begin{table}[H]
+	\centering
+	\caption{Tabla de particiones personalizada para la aplicación}
+	\label{Tab:Partition_table_web}
+	\medskip
+	\begin{tabular}{llllll}
+		\toprule
+		Name & Type & SubType & Offset & Size & Flags\\
+		\midrule
+		nvs &      data& nvs&    0x9000&  0x6000 & \\
+		phyinit& data& phy& 0xf000& 0x1000& \\
+		factory&  app&  factory& 0x10000& 1M& \\
+		www& data& spiffs& &1M&\\
+		.& .& .& &.&\\
+		.& .& .& &.&\\
+		.& .& .& &.&\\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+
+La columna \textit{Name} y la fila \textit{www} de este archivo separado por comas representado en la tabla \ref{Tab:Partition_table_web} se define el espacio de memoria donde se guardaran todos los archivos necesarios para la página web, el \textit{Type} es data y el \textit{SubType} es \textit{spiffs} debido a que así se debe definir en la memoria el tipo de datos para un sistema de archivos. Y el espacio en la memoria es de 1MB como lo dice en la columna \textit{Size}.\\
+
+El servidor \textit{HTTP} está implementado por el fabricante en los ejemplos de aplicaciones, se tomo dicha API y se adaptó a las necesidades de esta aplicación. 
+
+\subsubsection{Interfaz Gráfica de usuario}
+
+La interfaz gráfica consta de 5 pantallas, cada una con un formulario que son parámetros necesarios para conectarse a la red mallada, para su funcionamiento como algún tipo de nodo o para la conexión con el enrutador. A la interfaz se accede mediante la dirección IP del nodo o mediante un DNS relacionado con la MAC. También se incluye la configuración de usuario y clave para proteger al acceso, de usuarios no deseados. Las pantallas por las que puede ingresar datos el usuario son:
+
+\begin{enumerate}
+	\item \textbf{Inicio de sesión}
+	
+	El inicio de sesión requiere al menos de un usuario y contraseña para autenticar el acceso a la configuración del sistema. Esta pantalla debe ofrecer el acceso al sistema de configuración si estos son introducidos correctamente y rechazarlos en caso de que no.\\
+	
+	
+	\item \textbf{Parámetros de red mallada}
+	
+	La pantalla de ingreso de los parámetros para la red mallada requiere tener los siguientes parámetros: 
+	\begin{itemize}
+		\item ID de la red: Que es el identificador de la red, es un parámetro parecido en formato a una dirección MAC que permite identificar la red mallada y diferenciarla de otras implementadas.
+		\item Contraseña de la red: Es la clave requerida por los nodos para ingresar a la red. Sin este parámetro y el anterior no serán admitidos en la red mallada.
+		\item Cantidad máxima de capas: Se refiere a la cantidad de capas aceptadas por la red, este parámetro es necesario para la configuración de la misma. El valor varía entre 1 y 25 pero el fabricante recomienda 10 para tiempos de retardos manejables.
+		\item Cantidad máxima de estaciones conectadas: Este parámetro es el número máximo de estaciones WiFi conectadas que tendrá el nodo, en términos de la red mallada es la cantidad máxima de nodos hijo que puede tener un nodo. Se aceptan valores entre 1 y 10 pero recomienda que sea menor que 6 para un buen funcionamiento del punto de acceso.
+		\item Puerto del socket: El número de puerto TCP/IP que será abierto por el microcontrolador para conexiones externas, esto será explicado en detalle en la rutina correspondiente a este proceso.\\
+		
+	\end{itemize}
+
+
+	\item \textbf{Parámetros seriales}
+	
+	La pantalla de ingreso de los parámetros para el funcionamiento serial debe depender del tipo de nodo que se busque configurar puesto que hay al menos 3 tipos de nodos en la red sin contar el nodo central. En general para cualquier tipo de nodo los parámetros necesarios son:
+	
+	\begin{itemize}
+		\item Tasa de baudios: La tasa de comunicación con el medidor ó el bus serial.
+		\item Factor de conversión [$\frac{imp}{kWh}$]: La cantidad de impusos por cada kWh de energía registrada por el medidor al que se conecte el nodo.
+		\item Condición inicial de energía: Al soportar medidores ya instalado se deben tomar en cuenta las condiciones iniciales de energía consumida que marca el medidor para que el sistema sea coherente con el equipo.
+		\item Identificador de esclavo: Necesario para identificar el tipo de nodo que emulará un bus serial.\\
+		
+	\end{itemize}
+	
+	\item \textbf{Configuración de red local}
+	
+	Esta vista debe contemplar el ingreso de los parámetros de SSID y contraseña de la red local.\\
+	
+	
+	\item \textbf{Configuración de inicio de sesión}
+	
+	Esta vista responde a la necesidad de cambiar el nombre y la contraseña por defecto para el acceso al sistema de configuración mediante la interfaz web gráfica.\\
+	
+\end{enumerate}
+
+Además de las pantallas el micro debe recibir y procesar todos estos datos que le son enviados en formato JSON. En cada pantalla se tiene una pareja clave-valor por cada campo de los formularios, el servidor debe recibirlos y extraer los datos para que luego almacenarlos de forma permanente en la memoria y estos datos estén disponibles cuando se reinicie el dispositivo ya configurado.
+
+\subsection{Modo de operación}
+
+En este modo el primer periférico en configurarse en cualquiera de los nodos es la memoria no volátil (NVS), también llamada memoria flash, que se utiliza para almacenar información persistente entre reinicios del microcontrolador. El fabricante ofrece una interfaz de programación de aplicaciones (%Link a la API de NVS
+) que permite configurarla y operar fácilmente con esta.
+
+Esto se debe a que ahí se almacenan todos los datos que se transmiten al microcontrolador mientras este se encuentra en el modo de configuración. 
+
+Se toma desde la memoria flash la información sobre el tipo de nodo (serial RS485, entrada por pulsos o repetidor) y todos los parámetros que vienen asociados a este (tasa de baudios, ID serial, kWh iniciales, etc.), así como los parámetros necesarios para registrarse en la red mallada y poder comunicarse a través de la red.
+
+Luego se debe configurar el WiFi en cada uno de los medidores para poder unirse a la red mallada. Este periférico en el ESP32 posee también una interfaz de programación de aplicaciones para programarlo de manera más sencilla (%Link a la API del WiFi
+). Mediante esta interfaz, se calibra el WiFi, se asigna un lugar para almacenar sus parámetros de calibración y se coloca el modo de operación. El ESP32 posee tres modos de operación para este periférico: estación (STA), punto de acceso (AP) y un modo híbrido (AP/STA). Este último es el que se suele utilizar en la red mallada. Una vez configurado el WiFi se procede con la configuración e inicio de la red mallada.
+
+Cada nodo tiene una serie de tareas que son repartidas de manera equitativa entre ambos núcleos del ESP32, el objetivo es que estas se ejecuten en paralelo y el RTOS sea el encargado de esperar por los datos necesarios para su ejecución sincronizada y correcta.\\
+
+\subsubsection{La red mallada y el nodo central}
+
+La topología de red mallada utilizada en el proyecto está basada en la que provee \textit{Espressif} para ser utilizada en conjunto con el ESP32. Dicha topología es llamada ESP-MESH y el fabricante proporciona una interfaz de programación de aplicaciones (%API de ESP-MESH
+) para interactuar y modificar dicha topología con la intención de que sea adaptable a las soluciones que se deseen implementar. Según el tipo de medidor que haya sido configurado en la interfaz web serán activadas unas tareas u otras, puesto que cada medidor requiere de diferentes procesos para extraer y transmitir sus datos. 
+\\
+
+El objetivo es implementar una red mallada que transmita una información representativa de la cantidad de energía consumida, tomándola a partir de medidores de energía. Esta arquitectura de red requiere de un nodo particular para comunicarse hacia redes externas, llamado nodo raíz o nodo \textit{root}. Dicho nodo se elige mediante parámetros de calidad de señal, específicamente se tiene en cuenta la intensidad de señal (RSSI) de cada nodo con el enrutador. Considerando esto se efectúa una votación en la cual se elige qué nodo será asignado como nodo raíz, este suele ser el nodo de mayor intensidad de señal pues esto garantiza una comunicación estable.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\linewidth]{img/NodoRoot}
+	\caption{Diagrama de flujo de las tareas implementadas en el nodo central.}
+	\label{fig:nodoroot}
+\end{figure}
+
+Una vez elegido este nodo comienza a ejecutarse el código con las tareas implementadas en la programación para él. Son tres tareas, sin embargo debe comenzar estableciendo la conexión WiFi con el enrutador y obteniendo la IP de parte del DHCP del enrutador. Esta dirección asignada es la que será utilizada para comunicarse con la red mallada desde una red exterior.\\
+
+Una vez se obtiene la IP se crean en el RTOS las tareas necesarias para el nodo central:
+\begin{itemize}
+	\item \textbf{Manejar estados del socket:} El sistema requiere un punto de conexión que sirva como entrada y salida para los datos requeridos. Un socket ofrece una manera de intercambiar un flujo de datos y permite enviar mensajes a otra dirección IP.\\
+	
+	Dicho socket requiere de un proceso de configuración para el que se utiliza inicialmente un número de puerto. Este puerto será habilitado para permitir conexiones entrantes de clientes que soporten esta estructura de socket y el protocolo inherente a este bien sea TCP o UDP. Se utilizó el protocolo TCP ya que este protocolo de transporte garantiza la integridad de los datos. \\
+	
+	Una vez establecidos el puerto y el protocolo a soportar, el socket queda en espera de conexiones entrantes. Cuando un cliente solicita conectarse y el socket no está ocupado por otro cliente, esta conexión es aceptada y se cambia el estado a \textit{esperar mensaje}.\\
+	
+	Al ser recibido un mensaje este es copiado a una estructura de datos llamada \textit{cola} del sistema RTOS que funciona como un buzón de mensajes, en el que se puede acceder desde otra tarea que se encuentre esperando por dicha información, esta tarea toma la información y la retira del buzón y la utiliza para su ejecución. \\
+	
+	El socket vuelve al estado de \textit{esperar mensaje} pero no por un tiempo ilimitado, el socket para mantener la conexión requiere recibir mensajes cada cierto tiempo y si no se cumple con el tiempo máximo entre mensajes el socket acabará con la conexión establecida con ese cliente y se pondrá a la espera de clientes nuevos, esto para que un cliente no bloquee permanentemente el puerto.
+	
+	%Se puede configurar un socket por cada número de puerto pero al ser síncronos, solo puede conectarse un cliente al mismo tiempo.
+	 
+	\item \textbf{Enviar mensajes broadcast por la red mallada:} Esta tarea se encuentra a la espera del mensaje que se recibe en el socket, una vez hecho esto la tarea toma de la \textit{cola} del sistema RTOS la información depositada. Con estos datos se procede a repetir este mensaje mediante WiFi para todos los nodos conectados a este nodo central utilizando la función de envío de mensajes internos que ofrece el API de la red mallada.\\
+
+	%Ejemplo de envío de mensaje en la red wifi mallada utilizando el api de espressif
+
+	Para que esto funcione el nodo central debe tomar la dirección MAC de cada nodo desde su tabla de enrutamiento, ya que en la tabla del nodo central se encuentran todos los nodos de la red. La API del fabricante ofrece dicha opción y los mensajes que son enviados mediante WiFi van dirigidos con la dirección MAC de cada nodo. Repetidos según las reglas de la red hasta llegar a su destino.\\
+	
+	Una vez los nodos que conforman la red mallada reciben el mensaje deben interpretarlo pero para que la información contenida en este tenga sentido, debe haber un protocolo estándar para comunicarse. Se escogió el protocolo Modbus TCP/IP como lenguaje interno de la red mallada por la poca modificación que requiere la trama para comunicarse con los medidores que tienen interfaces Modbus RS485 y por la existencia de software que emula un maestro modbus mediante un socket TCP/IP.\\
+	
+	El protocolo Modbus TCP/IP es un protocolo sincronizado por silencios, de un solo maestro y múltiples esclavos. En este caso se utilizan los mensajes enviados por el socket para simular el maestro Modbus. Por lo que la red diseñada se puede ver de manera análoga como un bus serial inalámbrico, que repite tal cual el mensaje hacia los demás nodos. En la trama se envía: 
+	
+	\begin{itemize}
+		\item \textbf{Identificador del mensaje:} Evita repeticiones de mensajes.
+		\item \textbf{Identificador de protocolo:} Se refiere a la versión del protocolo Modbus.
+		\item \textbf{Longitud de la trama:} Cantidad de bytes de la trama sin contar el mensaje.
+		\item \textbf{Identificador del esclavo:} Numero en hexadecimal del esclavo al que se dirige el mensaje.
+		\item \textbf{Codigo de función:} Las funciones están identificadas con códigos hexadecimales. Por ejemplo: 0x03 es la función para leer un registro estático y 0x04 es la encargada de leer un registro de entrada.
+		\item \textbf{Datos:} Aquí se encuentran los números de registros y la información contenida en ellos.
+		
+	\end{itemize}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\linewidth]{img/TramaTCP-IP}
+	\caption{Estructura de una trama Modbus TCP/IP.}
+	\label{fig:tramatcp-ip}
+\end{figure}
+
+	\item \textbf{Recibir tramas desde la red mallada y enviarlas hacia una dirección externa:} Luego de que se envía la trama mediante la red WiFi esta tarea espera la respuesta del esclavo al que iba dirigido el mensaje. Cuando la respuesta llega desde la red mallada se utilizan las partes de la trama correspondientes a la longitud para enviar el mensaje mediante el socket TCP/IP hacia el cliente conectado. El tiempo que el mensaje toma en llegar desde el maestro al esclavo correspondiente y de vuelta debe ser menor al tiempo máximo de retardo del mensaje que establezca el maestro modbus para que no hayan errores de sincronización.
+	
+\end{itemize}
+
+\subsubsection{Nodo serial RS485}
+
+Este tipo de nodo se debe inicializar con los parámetros seriales mediante el modo de configuración en la interfaz gráfica para el usuario. El código en este nodo fue pensado para que este nodo funcione como una conversión de inalámbrico a serial, puesto que es el encargado de comunicarse con medidores que cumplen la norma RS485 y soportan el protocolo Modbus. Pero también fue pensado para transformar la trama modbus TCP/IP que llega desde la red mallada en una trama modbus RTU que es la que soportan la mayoría de medidores con modbus.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\linewidth]{img/NodoRS485}
+	\caption{Diagrama de flujo de las tareas implementadas en el nodo RS485.}
+	\label{fig:nodors485}
+\end{figure}
+
+\begin{itemize}
+	\item \textbf{Esperar la trama desde la red mallada:} Esta tarea se encarga tomar el mensaje que llega y convertir el modbus TCP/IP en un Modbus RTU, esta conversión consiste en quitar los 6 primeros bytes de la trama modbus TCP/IP que serían los bytes de cabecera y luego colocar una comprobación de errores mediante un CRC de 2 bytes al final de la trama.\\
+	
+	Una vez realizado este procedimiento, el resultado es puesto en una \textit{cola} del sistema RTOS para comunicarlo hacia la tarea encargada de manejar el bus serial del microcontrolador.\\
+	
+	\item \textbf{Esperar por trama RTU:} En esta tarea se maneja el bus de datos para la comunicación serial con los medidores. Se toman los datos recibidos en la \textit{cola} del sistema y se envían mediante el UART del microcontrolador hacia el bus serial con las API del UART que ofrece el fabricante. A partir del envío comienza a correr un tiempo máximo de respuesta que tiene el dispositivo serial conectado al bus para devolver la información solicitada. \\
+	
+	Todos los nodos configurados como este tipo de nodo repiten el mensaje independientemente de su contenido pero al ser protocolo modbus solo responderá el esclavo que corresponda con el id contenido en el mensaje. Si la respuesta serial llega, esta se transforma de modbus RTU a modbus TCP/IP para ser enviada al nodo central como respuesta y el nodo queda en espera del siguiente mensaje.
+\end{itemize}
+
+
+\subsubsection{Nodo de entrada por pulsos}
+
+Este nodo se inicializa mediante la interfaz web gráfica para configuración. Este nodo se creó con la finalidad de adaptarse a los medidores que se encuentran ya colocados en la mayoría de conjuntos residenciales y comerciales. Estos medidores poseen una salida binaria que es la que se utiliza para calibrarlos, en esta salida se puede observar un cantidad de impulsos por cada kWh consumido que registra el medidor. \\
+
+La idea de este nodo es tomar esos impulsos y almacenarlos para contar el total de los kWh consumidos, teniendo en consideración la condición inicial del medidor y para evitar que la cuenta se pierda por cualquier razón este nodo debe almacenar dicho valor en una memoria que sea persistente. \\
+
+Además el nodo debe tener la capacidad de responder a los mensajes enviados por la red mallada y en caso de que dicho mensaje contenga la trama indicada para solicitar el valor de energía, responder con dicho registro mediante la red mallada WiFi hacia el nodo central.\\
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\linewidth]{img/NodoPulsos}
+	\caption{Diagrama de flujo de las tareas implementadas en el nodo de pulsos.}
+	\label{fig:nodopulsos}
+\end{figure}
+
+\begin{itemize}
+	\item \textbf{Esperar trama desde la red mallada:} El nodo debe poder comunicarse por la red mallada, por lo que se implementó en este la comunicación mediante la red utilizando la API del fabricante. Esta tarea estará en espera hasta que llegue el mensaje proveniente de la red mallada, una vez se tenga dicho mensaje se procede a comprobar los campos respectivos al identificador del esclavo, el código de función, el número de registro y el CRC. De comprobarse que todos estos campos son correctos se procede a armar la trama de respuesta con el valor actual de la cuenta de pulsos y se envía de vuelta al nodo central encapsulado en la trama modbus TCP/IP.\\
+	
+	\item \textbf{Inicializar memoria no volátil:} En el microcontrolador utilizado el fabricante utiliza una API llamada NVS (\textit{Non volatile Storage}) para referirse a la memoria flash, esta interfaz de programación ofrece facilidades para tratar y almacenar datos en la memoria flash, así como la capacidad de manejar las particiones, páginas y registros que la comprenden.\\
+	
+	Para inicializar la memoria no volátil se utiliza dicha interfaz ofrecida por el fabricante. Cada partición de la memoria no volátil requiere de un nombre, el nombre por defecto es \textit{nvs} pero en este caso serán utilizadas varias particiones por lo que se les asignó el nombre de \textit{app1 , app2, app3}. Estos nombres son definidos en la tabla de particiones y serán utilizados en el código del programa. \\
+	
+	\begin{table}[H]
+		\centering
+		\caption{Tabla de particiones de la aplicación}
+		\label{Tab:Partition_table_meters}
+		\medskip
+		\begin{tabular}{llllll}
+			\toprule
+			Name & Type & SubType & Offset & Size & Flags\\
+			\midrule
+			nvs &      data& nvs&    0x9000&  0x6000 & \\
+			phyinit& data& phy& 0xf000& 0x1000& \\
+			factory&  app&  factory& 0x10000& 1M& \\
+			www& data& spiffs& &1M&\\
+			app1& data& nvs& &64K&\\
+			app2& data& nvs& &64K&\\
+			app3& data& nvs& &64K&\\
+			\bottomrule
+		\end{tabular}
+	\end{table}
+
+	\begin{itemize}
+		\item \textbf{Tamaños y tablas de particiones}\\
+		
+		Las páginas de partición poseen 64kB de la memoria flash cada una, esto debido a que cuando se inicializa una partición con el API \textit{NVS} dicha partición consume una cantidad de memoria \textit{RAM} proporcional al tamaño de la partición inicializada, por lo que para no consumir memoria \textit{RAM} excesiva se escogió este tamaño de partición. \\
+		
+		La partición a su vez se divide en estructuras llamadas páginas, que también poseen nombres, estas páginas tienen un tamaño de 4kB (por defecto) y el nombre por defecto de la página inicial es \textit{storage}, el resto de las 15 páginas fueron nombradas con los nombres \textit{pv0 - pv14}.\\
+		
+		Y las páginas están compuestas por registros, 126 para ser exactos, llamados por el fabricante como entradas. Estas llevan también un nombre y fueron asignadas como (\textit{e0-e125}). Las entradas son capaces de almacenar diferentes tipos de datos: enteros con y sin signo, cadenas de caracteres y arreglos.\\
+		
+		Es importante que se consideren los límites físicos de la memoria flash, un mismo espacio de memoria puede sobreescribirse hasta unas 100000 veces antes de dañarse. Por lo que la cantidad de veces que se reescribe en una entrada en el algoritmo se fijó como 50000, para preservar el estado físico de la memoria. Para el algoritmo, una entrada se encuentra llena cuando alcanza ese número de veces escrita.\\
+		
+		\item \textbf{Buscar la última escritura en la memoria}\\
+		
+		El algoritmo para almacenar los pulsos comienza en la partición \textit{app1} y comprueba si esta partición se encuentra 'llena' mediante una bandera lógica en la pagina principal \textit{storage}, de ser así cierra la partición actual y busca en la siguiente hasta encontrar una que no esté llena, de no encontrar una disponible se emite una alerta mediante el serial.\\
+		
+		Una vez en la partición se busca la última página en la que se escribió mediante un entero almacenado en la página principal \textit{storage}. En la última página escrita se cuenta la cantidad de entradas escritas, con este numero se puede saber la última entrada que se escribió. \\
+		
+		Se toma el valor de esa última entrada y se le suman todas las entradas, páginas y particiones anteriores además de la condición inicial de kWh para saber la cantidad de pulsos que se llevan en la cuenta y se almacena en el registro para estar disponible en caso de que se deba enviar mediante la red WiFi.\\
+		
+		\item \textbf{Nuevo pulso detectado}\\
+		
+		Por último cuando se produce un nuevo pulso y se detecta mediante una interrupción en el pin asignado, el programa aumenta la cuenta de pulsos total que se encuentra en el registro para enviar por la red y también aumenta la cuenta en la entrada actual para que la información sea persistente.\\
+		
+		En caso de llenarse una entrada se cambia a la siguiente hasta llegar a la entrada \textit{e125}, luego se cambia a la siguiente página y se modifica el entero correspondiente a la última página escrita en \textit{storage}, hasta llegar a la página \textit{pv14}, en este caso se coloca una bandera lógica en la página \textit{storage} para avisar que se encuentra llena la partición y se cambia a la siguiente. Luego vuelve al estado de espera de la siguiente interrupción por pulsos.
+	\end{itemize}
+
+\item \textbf{Cálculos de vida útil estimada según el uso de la memoria flash}\\
+
+Tomando la como referencia el medidor de una casa promedio en España, al año se alcanza la cifra de 9922 kWh consumidos por lo que haciendo una estimación para la duración de la memoria tendríamos:
+
+\begin{equation}
+	52\; \frac{semana}{anio} \times 7\; \frac{dia}{semana} \times 24\; \frac{horas}{dia} = 8736\; \frac{horas}{anio}
+\end{equation}
+
+
+\begin{equation}
+	\dfrac{9922\; \frac{kWh}{anio}}{8736\; \frac{horas}{anio}} = 1,1358\;\frac{kWh}{hora}
+\end{equation}
+
+La cantidad de pulsos emitidos por kWh depende enteramente del medidor, puesto que todos tienen valores diferentes. Para un medidor de 1800 $\frac{imp}{kWh}$ que es el que se utiliza para las pruebas de sistema, se tiene que:
+
+\begin{equation}
+	1,1358\; \frac{kWh}{hora} \times 1800\; \frac{impulsos}{kWh} = 2045\; \frac{impulsos}{hora}
+\end{equation}
+
+En el cálculo de la vida útil es necesario tomar en cuenta la cantidad de impulsos que se puede almacenar en las particiones:
+
+\begin{equation}
+	126\; entradas \times 15\; paginas \times 50k \frac{impulsos}{entrada} = 94,5\; Mimpulsos
+\end{equation}
+\begin{equation}
+	94,5\; Mimpulsos \times 2045\; \frac{impulsos}{hora} = 46210\; horas\; o\; 5\; anios
+\end{equation}\\
+
+
+Esto significa que cada partición duraría para el consumo de una casa promedio 5 años, al tener 3 particiones inicialmente se estarían garantizando según los cálculos unos 15 años de vida útil.\\
+
+Esto sin considerar que el número de particiones de 64kB se puede aumentar y solo se ve limitado por el tamaño de la memoria flash del micro que en muchos casos llega a ser entre 2 y 16 MB.
+
+\end{itemize}
+
+\subsubsection{Nodo Repetidor}
+
+El nodo repetidor es un nodo que ha sido configurado para ser parte de la red mallada sin tener conexiones físicas con alguna remota mediante un bus serial o con un medidor de energía mediante su salida de calibración.\\
+
+Este tipo de nodos es útil para ampliar la cobertura de la red en caso de que sea necesario abarcar un mayor área o tener mayor densidad de nodos para mejorar la conexión entre estos en una zona específica. Este nodo no posee tareas implementadas en sus núcleos, solo posee el código necesario para ser parte de la red y repetir en ambos sentidos los mensajes que lleguen a este.\\
+
+\subsubsection{Otras consideraciones}
+
+Cabe destacar que cualquier tipo de nodo de la red puede y retransmite los mensajes que le llegan sin importar si es de pulsos, serial RS485 o repetidor. Esta capacidad de retransmisión viene incorporada en el esqueleto de la red implementado por el fabricante.

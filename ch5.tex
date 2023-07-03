@@ -1,0 +1,270 @@
+% !TeX spellcheck = es_ES
+% !TeX encoding = ISO-8859-1
+
+Una vez establecido el hardware y realizado el diseño del software necesario para implementar la aplicación en el microcontrolador se realizó una serie de pruebas para constatar la correcta implementación del sistema.
+
+\section{Resultados de la interfaz gráfica}
+
+Para realizar las pruebas del sistema que se presentan a continuación se debió configurar cada uno de los nodos utilizando la interfaz gráfica implementada en el modo de configuración. A continuación se ilustra el procedimiento y las distintas pantallas implementadas en ello:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.6\linewidth]{img/ejemploPagina}
+	\caption{Log serial del microcontrolador en modo servidor HTTP cuando es enviada una de las pantallas.}
+	\label{fig:ejemplopagina}
+\end{figure}
+
+Cuando el usuario solicita cualquier página al servidor se produce recibe la petición y se procesa enviando posteriormente el archivo solicitado como se puede ver en la figura \ref{fig:ejemplopagina}, esto es común para todas las pantallas y se puede ver afectado por la congestión de la red local, ya que el envío se realiza mediante de esta.\\
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\linewidth]{img/Login}
+	\caption{Vista de la pantalla de inicio de sesión del usuario.}
+	\label{fig:login}
+\end{figure}
+
+Seguidamente, se puede observar la pantalla de inicio de sesión, figura \ref{fig:login}, en la que el usuario debe introducir de manera correcta clave y contraseña para acceder a la configuración del equipo, considerando la seguridad del mismo.\\
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\linewidth]{img/loginJSONv2}
+	\caption{Mensaje recibido en el servidor cuando el usuario rellena el inicio de sesión y envía los datos.}
+	\label{fig:loginjson}
+\end{figure}
+
+Una vez es iniciada la sesión se muestra el formulario de configuración de la red mallada, en el que se introducen los parámetros de configuración de dicha red.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\linewidth]{img/FormMesh}
+	\caption{Vista de la pantalla del formulario de parámetros de la red mallada.}
+	\label{fig:formmesh}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\linewidth]{img/meshJSON}
+	\caption{Mensaje recibido en el servidor cuando el usuario rellena el formulario de red mallada y envía los datos.}
+	\label{fig:meshjson}
+\end{figure}
+
+
+Con los parámetros en las figuras \ref{fig:formmesh} y \ref{fig:meshjson} se puede inicializar la red mallada. Se procede luego mediante el menú de la barra superior de la página para acceder al formulario de parámetros seriales.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\linewidth]{img/FormModbus}
+	\caption{Vista de la pantalla de formulario de parámetros seriales.}
+	\label{fig:formmodbus}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\linewidth]{img/modbusJSON}
+	\caption{Mensaje recibido en el servidor cuando el usuario rellena el formulario de parámetros seriales y envía los datos.}
+	\label{fig:modbusjson}
+\end{figure}
+
+ Los parámetros de las figuras \ref{fig:formmodbus} y \ref{fig:modbusjson} son los parámetros requeridos para para la extracción de la data desde el medidor. En la siguiente pantalla se debe rellenar el formulario de la red local:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\linewidth]{img/LocWifijpg}
+	\caption{Vista de la pantalla de parámetros de red local}
+	\label{fig:locwifijpg}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1\linewidth]{img/locwifiJSON}
+	\caption{Mensaje recibido en el servidor cuando el usuario rellena el formulario de red local y envía los datos.}
+	\label{fig:locwifijson}
+\end{figure}
+
+Los parámetros de las figuras \ref{fig:locwifijpg} y \ref{fig:locwifijson} son utilizados para que el equipo pueda tener acceso al WiFi en caso de ser el nodo central. Con este paso se cumple el mínimo necesario para que el equipo funcione. Por último se realizó una pantalla para cambiar el usuario y la contraseña de inicio de sesión, en caso de que se quiera modificar esta.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.9\linewidth]{img/UserLog}
+	\caption{Vista de la pantalla para modificar los parámetros de acceso del usuario.}
+	\label{fig:userlog}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{img/userJSON}
+	\caption{Mensaje recibido en el servidor cuando el usuario rellena el formulario de actualizar usuario y contraseña y envía los datos.}
+	\label{fig:userjson}
+\end{figure}
+
+
+\section{Prueba de funcionamiento del sistema}
+
+Una vez introducidos los datos de configuración en el modo anterior, se reinician los nodos para que la red comience a funcionar. Cada nodo se conecta al WiFi y entre sí, luego se realiza una votación en la que se elige un nodo central, estableciéndose así la primer capa de la red.\\
+
+Posteriormente se establece la estructura de la red, en el caso de estas pruebas realizadas se colocó en los parámetros del nodo central un máximo de tres (3) capas de profundidad para la red y un  máximo de dos (2) conexiones con nodos hijos para dicho nodo central.\\
+
+En la siguiente capa de la red, la segunda capa, se encuentra un nodo repetidor que funcionará como demostración de la capacidad de la red de comunicarse con nodos en capas más profundas a través de otros nodos. El mismo fue configurado con la capacidad de tener para esta prueba un (1) solo nodo hijo conectado. En esta segunda capa también se encuentra uno de los nodos a medir, el nodo de pulsos, conectado directamente con el nodo central.\\
+
+En la tercera y última capa para esta prueba y conectado al nodo enlace se encuentra el nodo de transmisión serial RS485. Un diagrama de la prueba quedaría de la siguiente manera:
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{img/DiagramaPrueba}
+	\caption{Diagrama general de la red para pruebas.}
+	\label{fig:diagramaprueba}
+\end{figure}
+
+En esta red se realizaran pruebas de extracción de datos para comprobar el funcionamiento de los nodos y pruebas de restablecimiento del sistema en caso de que los nodos se desconecten de la red.\\
+
+El tiempo entre envío de mensajes en la red se estableció en 1 segundo y el máximo tiempo de respuesta aceptado se estableció en 5s para las siguientes pruebas.
+ 
+\subsection{Extracción de datos del nodo contador de pulsos}
+
+\begin{table}[H]
+	\centering
+	\caption{Registro de mensajes del maestro sobre la comunicación con el esclavo de pulsos.}
+	\label{Tab:Master2Pulse}
+	\medskip
+	\begin{tabular}{l|lllrr}
+		\toprule
+		\multicolumn{6}{c}{Registro del maestro modbus} \\
+		Prueba N\textdegree&Enviados& Recibidos& Tiempo [s]& Errores & Error[\%]\\
+		\midrule
+		1&1500  & 1499  & 2223,801 & 13 & 0,87\\
+		2&1500 & 1499  & 2226,643 & 16 & 1,07\\
+		3&1500& 1500 & 2226,970 & 15 & 1\\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\caption{Registro de mensajes del nodo contador de pulsos sobre la comunicación con el maestro.}
+	\label{Tab:Pulse2Master}
+	\medskip
+	\begin{tabular}{l|lllrr}
+		\toprule
+		\multicolumn{6}{c}{Nodo contador de pulsos} \\
+		 Prueba N\textdegree& Recibidos & Enviados & Tiempo [s] & Error de procesamiento & Error[\%]\\
+		\midrule
+		1&1499 & 1499&2223,801 & - & -\\	
+		2&1499 & 1499&2226,643 & - & -\\
+		3&1500 & 1500&2226,970 & - & -\\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+El nodo contador de pulsos culminó con una cantidad de errores máxima en todas las pruebas realizadas del 1,07\% en el registro del maestro modbus (tabla \ref{Tab:Master2Pulse}), lo que denota el correcto funcionamiento de la red con este nodo. \\
+
+Se observa en la tabla \ref{Tab:Pulse2Master} que la cantidad de mensajes recibidos y enviados es la misma por lo que no hubo errores en el procesamiento del nodo, esta cantidad además coincide casi en totalidad con el registro del maestro por lo que se infiere que los errores registrados son errores debido al timeout ó error de identificador en la trama enviada por el nodo.
+
+\subsection{Extracción de datos del nodo RS485}
+
+
+\begin{table}[H]
+	\centering
+	\caption{Registro de mensajes del maestro sobre la comunicación con el nodo serial rs485.}
+	\label{Tab:Master2Serial}
+	\medskip
+	\begin{tabular}{l|lllrr}
+		\toprule
+		\multicolumn{6}{c}{Registro del maestro modbus} \\
+		Prueba N\textdegree&Enviados& Recibidos& Tiempo[s]& Errores& Error[\%]\\
+		\midrule
+		1&1500   & 1481  & 2761,411 & 67 & 4,46 \\
+		2&1500  & 1481  & 2761,803 & 67 & 4,46 \\
+		3&1500 & 1480 & 2758,267 & 65 & 4,33\\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\caption{Registro de mensajes del nodo serial rs485 sobre la comunicación con el maestro.}
+	\label{Tab:Serial2Master}
+	\medskip
+	\begin{tabular}{l|lllrr}
+		\toprule
+		\multicolumn{6}{c}{Nodo serial RS485} \\
+		Prueba N\textdegree & Recibidos & Enviados & Tiempo[s] & Error de procesamiento & Error[\%]\\
+		\midrule
+		1&1498  & 1481 &2761,411 & 17 & 1,13\\	
+		2&1498  & 1481 &2761,803 & 17 & 1,13\\
+		3&1498 & 1480 &2758,267 & 18 & 1,20 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+La diferencia en la cantidad de mensajes enviados y recibidos evidencia perdidas de paquetes en la red y un funcionamiento menor que el nodo de pulsos, las tasas de error registradas por el maestro denotan un porcentaje máximo de 4,46\% como se observa en la tabla \ref{Tab:Master2Serial}.\\
+
+Con los datos de la tabla \ref{Tab:Serial2Master} se puede observar que hubo un máximo de 18 errores en el procesamiento de los mensajes en una prueba, estos errores en el procesamiento del nodo pueden surgir debido al tiempo de espera máximo que se tiene programado en el bus serial de este tipo de nodos, puede deberse al tiempo de respuesta del medidor asociado al nodo que puede verse saturado y responder menos mensajes de los que se demandan.
+
+\section{Prueba de restablecimiento del sistema}
+\subsection{Para el nodo central}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{img/ReestablecerRoot}
+	\caption{Ejemplo de la red restablecida luego de desconectar el nodo central si el nodo repetidor gana la votación.}
+	\label{fig:reestablecerroot}
+\end{figure}
+
+
+\begin{table}[H]
+	\centering
+	\caption{Tiempo de recuperación de la red cuando es desconectado el nodo central.}
+	\label{Tab:healingMasterNode}
+	\medskip
+	\begin{tabular}{lr}
+		\toprule
+		Prueba N\textdegree & Tiempo de recuperación [ms] \\
+		\midrule
+		1&25541 \\
+		2&24598 \\
+		3&25720 \\
+		4&25231 \\
+		5&24896 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+De las pruebas y el tiempo en la tabla \ref{Tab:healingMasterNode} se puede observar que el nodo central como nodo fundamental de la red tarda más de 25 segundos en recuperarse, a este tiempo le afectan varios factores: El tiempo que toma en darse cuenta la red que se perdió la conexión con dicho nodo central, luego el tiempo de votación para la elección del nuevo nodo central y por último el tiempo de reordenamiento de la red (puede verse afectado por la cantidad de nodos).\\
+
+Al ser solo 3 nodos los restantes y tardar dicha cantidad de tiempo, este es un factor a considerar para su uso en aplicaciones críticas. 
+
+
+\subsection{Para cualquier otro nodo}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\linewidth]{img/ReestablecerOtro}
+	\caption{Ejemplo de la red restablecida luego de desconectar el nodo repetidor.}
+	\label{fig:reestablecerotro}
+\end{figure}
+
+
+\begin{table}[H]
+	\centering
+	\caption{Tiempo de recuperación de la red cuando es desconectado un nodo, exceptuando el nodo central.}
+	\label{Tab:healingAnyNode}
+	\medskip
+	\begin{tabular}{lr}
+		\toprule
+		Prueba N\textdegree & Tiempo de recuperación [ms] \\
+		\midrule
+		1&17776 \\
+		2&18163 \\
+		3&17142 \\
+		4&17964 \\
+		5&18162 \\
+		6&18254 \\
+		7&18422 \\
+		8&17968 \\
+		9&17566 \\
+		10&17001 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+En este caso (tabla \ref{Tab:healingAnyNode}) se observa que el tiempo es varios segundos menor respecto al tardado para el restablecimiento del nodo central, para un nodo cualquiera no se debe realizar una votación ni el restablecimiento de la totalidad de la red sino que puede ser parcialmente renovada, reduciendo así el tiempo que se tarda la red en sanar la pérdida.
