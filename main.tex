@@ -24,6 +24,8 @@
 \usepackage{enumitem}
 \setlist[itemize]{noitemsep, topsep=0pt}
 \setlist[enumerate]{noitemsep, topsep=0pt}
+\renewcommand{\labelitemi}{\textbullet}
+\setlength{\parskip}{10pt}
 \selectlanguage{spanish}
 \useunder{\uline}{\ul}{}
 \newcommand{\myparagraph}[1]{\paragraph{#1}\mbox{}\\}
@@ -59,26 +61,23 @@
 
 \section*{INTRODUCCIÓN}
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris euismod tristique mattis. Nunc dictum, quam et imperdiet vulputate, elit lectus ultrices lorem, non ullamcorper magna ligula posuere mi. Ut lobortis felis nec laoreet ultricies. Vestibulum tincidunt erat ac dui fringilla tincidunt. Pellentesque non elit ante. Integer at viverra eros. Maecenas dignissim faucibus velit, finibus efficitur augue fringilla vel. Nunc sit amet metus dolor. Nulla scelerisque maximus orci a lobortis. Proin nunc mauris, varius in lobortis at, accumsan a mauris. Donec tempus euismod luctus.
+Las fuertes precipitaciones causan graves pérdidas humanas y materiales, y a menudo desencadenan catástrofes naturales como corrimientos de tierra e inundaciones repentinas. Un ejemplo de esto fue el trágico evento ocurrido en Tejerías en el año 2022, donde un conjunto de deslaves e inundaciones provocados por el desbordamiento de la quebrada Los Patos dejaron como consecuencia varios fallecidos y daños materiales significativos. Otro causado por fuertes precipitaciones es la popularmente conocida como "La tragedia de Vargas", la cual tuvo lugar en diciembre de 1999, donde un conjunto de deslaves, corrimientos de tierra e inundaciones dejaron a centenares de fallecidos y miles de damnificados en las costas de los estados Vargas, Miranda y Falcón.
 
-Phasellus cursus erat quis tortor ornare, et luctus lacus sollicitudin. Donec augue massa, euismod ornare pretium id, dictum eu orci. Vestibulum fermentum lectus diam, ac imperdiet tellus tincidunt eu. Sed pellentesque rutrum velit, in placerat ex imperdiet sed. Sed lacinia lacus et lacus viverra, a aliquam risus mattis. Curabitur ornare dapibus mi, ac porta sapien venenatis in. Integer pulvinar ante non auctor vestibulum.
+Prevenir ese tipo de desastres es de vital importancia para la sociedad, ya que de esta manera se podrian minimizar los daños causados por dichos desastres. Los sistemas de alerta temprana (EWS por sus siglas en inglés) ayudan a prevenir y minimizar las pérdidas de vidas humanas ante desastres naturales, utilizando información recolectada por distintas estaciones para anticipar este tipo de desastres naturales y dar un margen de tiempo para tomar las medidas preventivas pertinentes para minimizar los daños que estos puedan causar. Los EWS están conformados por varias etapas como: un sistema de recolección de datos, un modelo matemático predictivo, un algoritmo de toma de decisiones y actuadores. 
 
-Integer iaculis urna sem, eget mattis massa sodales vitae. Etiam ornare ultrices est in mollis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer accumsan, dui vitae ultricies pharetra, mi est suscipit tellus, id ultrices ligula augue ut turpis. Quisque cursus et tortor id fringilla. Sed venenatis cursus dui in pulvinar. Mauris et est lectus. Morbi vehicula felis eu euismod faucibus. Aliquam placerat porta purus eu varius. Integer velit dolor, ultrices ac tristique in, vestibulum quis nisl. Nunc id velit nec diam viverra pharetra id quis massa. Quisque eu libero pharetra, mattis neque at, pulvinar libero. Suspendisse luctus purus ut ex mollis ultricies. Duis eget tortor facilisis, dictum velit convallis, laoreet mauris.
+En el caso de los modelos matemáticos predictivos, es común utilizar la predicción meteorológica numérica (NWP por sus siglas en inglés) para predecir las precipitaciones utilizando un historial de condiciones climáticas y un conjunto de modelos matemáticos para simular las condiciones de la atmósfera. Sin embargo, durante los últimos años se han utilizado técnicas de aprendizaje automático para realizar estas predicciones gracias a los avances en el campo de reconocimiento de patrones y la inteligencia artificial, permitiendo obtener mejores resultados en los pronósticos de desastres climáticos relacionados con las precipitaciones.
 
-Phasellus molestie, libero quis commodo vestibulum, neque ligula iaculis ante, ut pretium leo nunc nec odio. Phasellus consequat commodo lorem, at efficitur ex sodales ut. Quisque fringilla orci quis neque porttitor elementum. Sed lectus magna, egestas at quam vitae, pulvinar euismod tellus. Suspendisse gravida sit amet tortor sit amet interdum. Aliquam venenatis porta ipsum non faucibus. In molestie, ipsum ut malesuada pulvinar, leo nibh faucibus enim, ac hendrerit nibh nibh non tortor.
-
-Etiam lacinia quam nec urna congue, quis finibus purus malesuada. Duis maximus augue magna, elementum porttitor metus pellentesque quis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Aliquam facilisis, justo a iaculis dignissim, enim tortor placerat ante, ut tempor metus purus non dolor. Mauris pellentesque elementum finibus. Mauris ut mauris eu metus condimentum posuere. Nulla ornare eget ligula eu interdum. Aenean ac suscipit dolor. Sed eu gravida nisi.
+Por lo tanto, seguir realizando investigaciones y estudios sobre el rendimiento de los modelos de predicción hidrometeorológica de precipitaciones implementados con técnicas de aprendizaje automático puede mejorar la capacidad predictiva y la fiabilidad de los sistemas de alerta temprana, permitiendo dar mayores tiempos de respuesta ante desastres climáticos relacionados con las precipitaciones y minimizando las falsas alarmas de los mismos.
 
 \newpage
 
 \section*{PLANTEAMIENTO DEL PROBLEMA}
 
+Las fuertes precipitaciones son eventos climáticos que pueden provocar graves pérdidas humanas y materiales, así como desencadenar catástrofes naturales como corrimientos de tierra e inundaciones repentinas. Prevenir este tipo de desastres es de vital importancia para la sociedad, ya que de esta manera se pueden minimizar los daños causados por dichos eventos.
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris euismod tristique mattis. Nunc dictum, quam et imperdiet vulputate, elit lectus ultrices lorem, non ullamcorper magna ligula posuere mi. Ut lobortis felis nec laoreet ultricies. Vestibulum tincidunt erat ac dui fringilla tincidunt. Pellentesque non elit ante. Integer at viverra eros. Maecenas dignissim faucibus velit, finibus efficitur augue fringilla vel. Nunc sit amet metus dolor. Nulla scelerisque maximus orci a lobortis. Proin nunc mauris, varius in lobortis at, accumsan a mauris. Donec tempus euismod luctus.
+Los sistemas de alerta temprana (EWS) son una herramienta importante para prevenir y minimizar las pérdidas humanas y materiales en caso de desastres naturales. Sin embargo, la capacidad predictiva y la fiabilidad de los sistemas de alerta temprana dependen en gran medida de la eficiencia del modelo matemático de predicción utilizado.
 
-Phasellus cursus erat quis tortor ornare, et luctus lacus sollicitudin. Donec augue massa, euismod ornare pretium id, dictum eu orci. Vestibulum fermentum lectus diam, ac imperdiet tellus tincidunt eu. Sed pellentesque rutrum velit, in placerat ex imperdiet sed. Sed lacinia lacus et lacus viverra, a aliquam risus mattis. Curabitur ornare dapibus mi, ac porta sapien venenatis in. Integer pulvinar ante non auctor vestibulum.
-
-Integer iaculis urna sem, eget mattis massa sodales vitae. Etiam ornare ultrices est in mollis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer accumsan, dui vitae ultricies pharetra, mi est suscipit tellus, id ultrices ligula augue ut turpis. Quisque cursus et tortor id fringilla. Sed venenatis cursus dui in pulvinar. Mauris et est lectus. Morbi vehicula felis eu euismod faucibus. Aliquam placerat porta purus eu varius. Integer velit dolor, ultrices ac tristique in, vestibulum quis nisl. Nunc id velit nec diam viverra pharetra id quis massa. Quisque eu libero pharetra, mattis neque at, pulvinar libero. Suspendisse luctus purus ut ex mollis ultricies. Duis eget tortor facilisis, dictum velit convallis, laoreet mauris.
+Los modelos de predicción hidrometeorológica de precipitación se basan en la predicción meteorológica numérica (NWP) para predecir las precipitaciones, utilizando un historial de condiciones climáticas y modelos matemáticos para simular las condiciones de la atmósfera. Aunque estos modelos han demostrado ser efectivos, su capacidad predictiva y fiabilidad pueden mejorarse aún más mediante técnicas de aprendizaje automático. Por lo tanto, el desarrollo y evaluación de un modelo de predicción hidrometeorológico de precipitación utilizando técnicas de aprendizaje automático puede mejorar la capacidad predictiva y la fiabilidad de los sistemas de alerta temprana, permitiendo realizar predicciones más acertadas y con mayor tiempo de respuesta ante un desastre natural causado por precipitaciones.
 
 \section*{JUSTIFICACIÓN}
 
@@ -99,7 +98,7 @@ Desarrollar y evaluar un modelo de predicción hidrometeorológico de precipitac
 
 \subsection*{Objetivos Específicos}
 
-\begin{enumerate}
+\begin{itemize}
     \item Estudiar y analizar las técnicas de aprendizaje automático aplicadas a la predicción hidrometeorológicas de precipitación.
     \item Identificar y seleccionar las variables más significativas y relevantes para la predicción de eventos hidrometeorológicos, considerando la disponibilidad y calidad de los datos recopilados en la UCV.
     \item Analizar y Estudiar métodos de preprocesamiento de datos para el entrenamiento y uso del modelo de predicción hidrometeorológico.
@@ -108,8 +107,7 @@ Desarrollar y evaluar un modelo de predicción hidrometeorológico de precipitac
     \item Entrenar e implementar un modelo de predicción hidrometeorológico de precipitación utilizando técnicas de aprendizaje automático.
     \item Validar los resultados obtenidos al implementar el modelo de predicción hidrometeorológico de precipitación, y discutir dichos resultados.
     \item Desarrollar e implementar una interfaz de usuario que permita un fácil acceso a los datos obtenidos y a los resultados del modelo hidrometeorológico de precipitación.
-
-\end{enumerate}
+\end{itemize}
 
 
 \section*{METODOLOGÍA}
